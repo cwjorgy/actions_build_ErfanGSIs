@@ -1,34 +1,81 @@
-# actions_build_ErfanGSIs  
+name: build_ErfanGSIs
 
-## 一个基于Github Actions制作的自动跑ErfanGSI的脚本。 
-### 步骤如下： 
-- 首先，fork这个仓库。 
-- 接着，编辑build_ErfanGSIs.yml文件，把其中的ROM_URL改成你要做gsi的底包（注意直链）；还有ROM_NAME改成你的ROM名称。 
-- 然后，按Star小星星就可以开始了！ 
-- 最后，在Upload GSI里展开，看Download Link链接，访问即可下载。 
+on:
+#  release:
+#    types: [published]
+#  push:
+#    branches:
+#      - master
+#    paths:
+#      - '.config'
+#  schedule:
+#    - cron: 0 8 * * 5
+  watch:
+    types: [started]
+    
+env:
+  ROM_URL: https://hugeota.d.miui.com/20.5.29/miui_CEPHEUS_20.5.29_d531f234ac_10.0.zip
+  ROM_NAME: MIUI
+  TZ: Asia/Shanghai
 
-### 注意：由于上传artifacts的时候测试会卡BUG，于是决定改成上传到日本的BitSend（bitsend.jp）需要Fq。
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
 
-## 附：ErfanGSI支持的ROM ##
-> ROM_NAME里填一摸一样的，下的ROM也要一样；Generic是（类）原生的意思
-### 9 Pie： ### 
-> ColorOS	
-Flyme
-Generic
-MIUI	
-Moto	
-Nubia	
-OneUI	
-OxygenOS	
-Pixel	
-Xperia	
-ZUI	
-ZenUI
-### 10 Q： ###
-> Generic
-MIUI	
-OxygenOS
-Pixel
-### 11 R： ##
-> Generic	
-Pixel
+    steps:
+       - name: Checkout
+         uses: actions/checkout@master
+       
+       - name: Clean Up
+         run: |
+           docker rmi `docker images -q`
+           sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d
+           sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
+           sudo -E apt-get update
+           sudo -E apt-get -y autoremove --purge
+           sudo -E apt-get clean 
+           
+       - name: Initialization environment
+         run: |
+            sudo -E apt-get -qq update
+            sudo -E apt-get -qq install git openjdk-8-jdk wget
+       
+       - name: Clone ErfanGSI Source Code
+
+         run: git clone --recurse-submodules https://github.com/qsf1415/ErfanGSIs.git
+
+       
+
+       - name: Setting up ErfanGSI requirements
+
+         run: |
+
+              sudo chmod -R 777 ErfanGSIs
+
+              cd ErfanGSIs
+
+              sudo bash setup.sh
+
+              sudo sed -i '7c AB=true' url2GSI.sh
+
+              sudo sed -i '8c Aonly=false' url2GSI.sh
+
+       
+
+       - name: Download Stock Rom & Generate GSI
+
+         run: sudo ./ErfanGSIs/url2GSI.sh $ROM_URL $ROM_NAME
+       
+       - name: Zip GSI  
+         run: |
+              mkdir final
+              zip -r final/GSI.zip /home/runner/work/actions_build_ErfanGSIs/actions_build_ErfanGSIs/ErfanGSIs/output/
+       
+       - name: Upload GSI to BitSend
+         run: |
+              curl -sL https://git.io/file-transfer | sh
+              ./transfer bit final/GSI.zip
+
+         
+            
