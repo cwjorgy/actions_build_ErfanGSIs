@@ -42,29 +42,15 @@ jobs:
             sudo -E apt-get -qq install git openjdk-8-jdk wget
        
        - name: Clone ErfanGSI Source Code
-
-         run: git clone --recurse-submodules https://github.com/qsf1415/ErfanGSIs.git
-
+         run: git clone --recurse-submodules https://github.com/erfanoabdi/ErfanGSIs.git
        
-
        - name: Setting up ErfanGSI requirements
-
          run: |
-
               sudo chmod -R 777 ErfanGSIs
-
               cd ErfanGSIs
-
               sudo bash setup.sh
-
-              sudo sed -i '7c AB=true' url2GSI.sh
-
-              sudo sed -i '8c Aonly=false' url2GSI.sh
-
        
-
        - name: Download Stock Rom & Generate GSI
-
          run: sudo ./ErfanGSIs/url2GSI.sh $ROM_URL $ROM_NAME
        
        - name: Zip GSI  
@@ -76,6 +62,3 @@ jobs:
          run: |
               curl -sL https://git.io/file-transfer | sh
               ./transfer bit final/GSI.zip
-
-         
-            
